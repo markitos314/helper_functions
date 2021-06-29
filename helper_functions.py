@@ -1,8 +1,8 @@
-# Create an early stopping callback
-
 import tensorflow as tf
 import matplotlib.pyplot as plt
+import zipfile
 
+# Create an early stopping callback
 def early_stopping(monitor='val_loss', min_delta=0.05, patience=3, verbose=1, mode='auto', restore_best_weights=True):
   """
   Creates an early_stopping element to be then used in the callback section when fitting a model.
@@ -16,12 +16,11 @@ def early_stopping(monitor='val_loss', min_delta=0.05, patience=3, verbose=1, mo
   return early_stopping
 
 # Unzip .zip file
-import zipfile
 def unzip(filepath):
   with zipfile.Zipfile('filepath','r') as zipObj:
     zipObj.extractall()
 
-
+# Predict and plot image
 def predict_and_plot(model, filepath, img_size=224, scale=False, class_names=[]):
   """
   Function that loads an image, processes it and prints it
@@ -75,5 +74,3 @@ def make_model_checkpoint(filepath)
                                                         verbose=1,
                                                         save_best_only=True)
   return model_checkpoint
-
-
