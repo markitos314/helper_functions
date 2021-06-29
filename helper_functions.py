@@ -2,6 +2,9 @@
 
 import tensorflow as tf
 def early_stopping(monitor='val_loss', min_delta=0.05, patience=3, verbose=1, mode=auto, restore_best_weights=True):
+  """
+  Creates an early_stopping element to be then used in the callback section when fitting a model.
+  """
   early_stopping = tf.keras.callbacks.EarlyStopping(monitor,
                                                     min_delta,
                                                     patience,
@@ -9,3 +12,10 @@ def early_stopping(monitor='val_loss', min_delta=0.05, patience=3, verbose=1, mo
                                                     mode,
                                                     restore_best_weights)
   return early_stopping
+
+# Unzip .zip file
+import zipfile
+def unzip(filepath):
+  with zipfile.Zipfile('filepath','r') as zipObj:
+    zipObj.extractall()
+ 
