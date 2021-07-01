@@ -81,52 +81,60 @@ def preprocess_emergencias(path):
   Function that preprocesses 'emergencias' csv from Pentaho.
   
   Args:
-    path (str): Path to csv's directory to preprocess
+    path (str): Path to csv to preprocess
 
   Returns:
-    Concatenation of all preprocessed pandas dataframes
+    Preprocessed pandas dataframe
   """
-  df_list=[]
+  # Read csv
+  df_temp = pd.read_csv(path)
 
-  for name in glob.glob(path + '/*emergencias*'):
-    
-    # Read csv
-    df_temp = pd.read_csv(name)
+  # Get rid of unnecessary columns
+  df_temp.drop(columns=[f'Unnamed: {i}' for i in range(18,27,1)], inplace=True)
+  df_temp.drop(columns=['Unnamed: 0','Unnamed: 7','Unnamed: 10'], inplace=True)
 
-    # Get rid of unnecessary columns
-    df_temp.drop(columns=[f'Unnamed: {i}' for i in range(18,27,1)], inplace=True)
-    df_temp.drop(columns=['Unnamed: 0','Unnamed: 7','Unnamed: 10'], inplace=True)
+  # Get rid of unnecessary rows
+  df_temp.drop(range(0,6), inplace=True)
 
-    # Get rid of unnecessary rows
-    df_temp.drop(range(0,6), inplace=True)
+  # Set definitive columns
+  columns = ['DNI', 'NHC', 'PACIENTE', 'SEXO', 'EDAD', 'FECHA_HORA_INGRESO', 
+          'SERVICIO', 'SECCION', 'ALTA_MEDICA', 'MOTIVO_ALTA', 'ALTA_ADMIN', 
+          'PROFESIONAL', 'DIAGNOSTICO', 'CIE10', 'DESC_CIE10']
+  df_temp.columns=columns
 
-    # Set definitive columns
-    columns = ['DNI', 'NHC', 'PACIENTE', 'SEXO', 'EDAD', 'FECHA_HORA_INGRESO', 
-            'SERVICIO', 'SECCION', 'ALTA_MEDICA', 'MOTIVO_ALTA', 'ALTA_ADMIN', 
-            'PROFESIONAL', 'DIAGNOSTICO', 'CIE10', 'DESC_CIE10']
-    df_temp.columns=columns
+  # Convert dates to datetype format
+  df_temp['ALTA_ADMIN'] = pd.to_datetime(df_temp['ALTA_ADMIN'], dayfirst=True)
+  df_temp['ALTA_MEDICA'] = pd.to_datetime(df_temp['ALTA_MEDICA'], dayfirst=True)
+  df_temp['FECHA_HORA_INGRESO'] = pd.to_datetime(df_temp['FECHA_HORA_INGRESO'], dayfirst=True)
 
-    # Convert dates to datetype format
-    df_temp['ALTA_ADMIN'] = pd.to_datetime(df_temp['ALTA_ADMIN'], dayfirst=True)
-    df_temp['ALTA_MEDICA'] = pd.to_datetime(df_temp['ALTA_MEDICA'], dayfirst=True)
-    df_temp['FECHA_HORA_INGRESO'] = pd.to_datetime(df_temp['FECHA_HORA_INGRESO'], dayfirst=True)
-
-    # Create time difference columns
-    df_temp['DIF_ALTA_ADMIN_MEDICA'] = df_temp['ALTA_ADMIN'] - df_temp['ALTA_MEDICA']
-    df_temp['DIF_ALTA_MEDICA_INGRESO'] = df_temp['ALTA_MEDICA'] - df_temp['FECHA_HORA_INGRESO']
-    df_temp['ESTADIA_TOTAL'] = df_temp['ALTA_ADMIN'] - df_temp['FECHA_HORA_INGRESO']
-
-    df_list.append(df_temp)
-  
-  if len(df_list) > 1:
-    # Concatenate all df_temp
-    df = pd.concat(df_list)
-  else:
-    df = df_temp
+  # Create time difference columns
+  df_temp['DIF_ALTA_ADMIN_MEDICA'] = df_temp['ALTA_ADMIN'] - df_temp['ALTA_MEDICA']
+  df_temp['DIF_ALTA_MEDICA_INGRESO'] = df_temp['ALTA_MEDICA'] - df_temp['FECHA_HORA_INGRESO']
+  df_temp['ESTADIA_TOTAL'] = df_temp['ALTA_ADMIN'] - df_temp['FECHA_HORA_INGRESO']
 
   # Sort by 'FECHA_HORA_INGRESO'
-  df.sort_values('FECHA_HORA_INGRESO', inplace=True)
+  df_temp.sort_values('FECHA_HORA_INGRESO', inplace=True)
 
   # Reset index
-  df.reset_index(drop=True, inplace=True)
+  df_temp.reset_index(drop=True, inplace=True)
+  return df_temp
+
+
+# Contatenate dfs
+def concatenate_dfs(path, keyword):
+  """
+  Function that merges all preprocessed dfs in a directory, filtered by keyword
+
+  Args:
+    path (str): directory containing files to be preprocessed.
+    keyword (str): string used to filter type of files.
+  
+  Returns:
+    Concatenation of all pandas dataframes result of preprocessing all files in
+    directory.
+  """
+  df_list = []
+  for i, name in enumerate(glob.glob(path + '/*' + keyword + '*')):
+    df_list.append(preprocess_emergencias(name))
+    df = pd.concat(df_list)
   return df
