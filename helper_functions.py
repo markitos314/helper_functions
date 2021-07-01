@@ -74,3 +74,59 @@ def make_model_checkpoint(filepath)
                                                         verbose=1,
                                                         save_best_only=True)
   return model_checkpoint
+
+# Preprocess DF for HMN
+def preprocess_emergencias(path):
+  """
+  Function that preprocesses 'emergencias' csv from Pentaho.
+  
+  Args:
+    path (str): Path to csv's directory to preprocess
+
+  Returns:
+    Concatenation of all preprocessed pandas dataframes
+  """
+  df_list=[]
+
+  for name in glob.glob(path + '/*emergencias*'):
+    
+    # Read csv
+    df_temp = pd.read_csv(name)
+
+    # Get rid of unnecessary columns
+    df_temp.drop(columns=[f'Unnamed: {i}' for i in range(18,27,1)], inplace=True)
+    df_temp.drop(columns=['Unnamed: 0','Unnamed: 7','Unnamed: 10'], inplace=True)
+
+    # Get rid of unnecessary rows
+    df_temp.drop(range(0,6), inplace=True)
+
+    # Set definitive columns
+    columns = ['DNI', 'NHC', 'PACIENTE', 'SEXO', 'EDAD', 'FECHA_HORA_INGRESO', 
+            'SERVICIO', 'SECCION', 'ALTA_MEDICA', 'MOTIVO_ALTA', 'ALTA_ADMIN', 
+            'PROFESIONAL', 'DIAGNOSTICO', 'CIE10', 'DESC_CIE10']
+    df_temp.columns=columns
+
+    # Convert dates to datetype format
+    df_temp['ALTA_ADMIN'] = pd.to_datetime(df_temp['ALTA_ADMIN'], dayfirst=True)
+    df_temp['ALTA_MEDICA'] = pd.to_datetime(df_temp['ALTA_MEDICA'], dayfirst=True)
+    df_temp['FECHA_HORA_INGRESO'] = pd.to_datetime(df_temp['FECHA_HORA_INGRESO'], dayfirst=True)
+
+    # Create time difference columns
+    df_temp['DIF_ALTA_ADMIN_MEDICA'] = df_temp['ALTA_ADMIN'] - df_temp['ALTA_MEDICA']
+    df_temp['DIF_ALTA_MEDICA_INGRESO'] = df_temp['ALTA_MEDICA'] - df_temp['FECHA_HORA_INGRESO']
+    df_temp['ESTADIA_TOTAL'] = df_temp['ALTA_ADMIN'] - df_temp['FECHA_HORA_INGRESO']
+
+    df_list.append(df_temp)
+  
+  if len(df_list) > 1:
+    # Concatenate all df_temp
+    df = pd.concat(df_list)
+  else:
+    df = df_temp
+
+  # Sort by 'FECHA_HORA_INGRESO'
+  df.sort_values('FECHA_HORA_INGRESO', inplace=True)
+
+  # Reset index
+  df.reset_index(drop=True, inplace=True)
+  return df
